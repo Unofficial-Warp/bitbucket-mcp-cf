@@ -1,0 +1,26 @@
+{
+  "name": "bitbucket_mcp",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "$npm_execpath run build && vite preview",
+    "deploy": "$npm_execpath run build && wrangler deploy",
+    "typecheck": "tsc --noEmit",
+    "cf-typegen": "wrangler types --env-interface CloudflareBindings"
+  },
+  "dependencies": {
+    "@hono/mcp": "^0.3.1",
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "effect": "4.0.0-beta.102",
+    "hono": "^4.12.32",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@cloudflare/vite-plugin": "^1.44.0",
+    "@types/node": "^26.1.2",
+    "typescript": "^7.0.2",
+    "vite": "^8.1.4",
+    "wrangler": "^4.110.0"
+  }
+}

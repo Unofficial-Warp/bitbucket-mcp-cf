@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "strict": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
+    "exactOptionalPropertyTypes": false,
+    "lib": ["ESNext"],
+    "types": ["vite/client"]
+  },
+  "include": ["src", "worker-configuration.d.ts"]
+}
