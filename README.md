@@ -56,8 +56,7 @@ makes afterwards.
 
 ## Request contract
 
-There is nothing to configure on the worker — no environment variables, no secrets. Every request
-carries its own identity:
+The worker stores no credentials. Every request carries its own identity:
 
 | | |
 |---|---|
@@ -71,6 +70,26 @@ workspace slug outside `[A-Za-z0-9][A-Za-z0-9_.-]*` gets a `400`.
 Because callers bring their own tokens, an unauthenticated request can do nothing, and the worker
 never sees more access than the token it was handed. Do not add request logging that captures
 headers — the credential is on every call.
+
+### Restricting which workspaces are served
+
+| Variable | Required | Purpose |
+|---|---|---|
+| `ALLOWED_WORKSPACES` | no | Comma-separated workspace slugs. Anything else gets a `404`. |
+
+Set this on any deployment you don't want used as a general-purpose Bitbucket relay. Requests for
+other workspaces are refused before any credential is used, and the response is a bare `404` so it
+doesn't reveal which workspaces the deployment serves. Matching ignores case.
+
+Leaving it unset serves every workspace. That exposes no data — a caller still needs a token valid
+for whichever workspace they ask for — but it does let strangers spend your request quota.
+
+```sh
+npx wrangler secret put ALLOWED_WORKSPACES
+```
+
+Set it as a secret rather than a `vars` entry if your repository is public, so the slug isn't
+committed.
 
 ### Creating an API token
 

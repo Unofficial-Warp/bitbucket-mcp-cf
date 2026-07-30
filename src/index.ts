@@ -2,11 +2,19 @@ import { StreamableHTTPTransport } from "@hono/mcp"
 import { Cause, Exit, Layer, ManagedRuntime } from "effect"
 import { Hono } from "hono"
 import { Bitbucket } from "./bitbucket/client.ts"
-import { BitbucketConfig } from "./bitbucket/config.ts"
+import { BitbucketConfig, parseAllowedWorkspaces } from "./bitbucket/config.ts"
 import type { BitbucketCredentials } from "./bitbucket/config.ts"
 import * as McpServer from "./mcp/server.ts"
 import { homePage } from "./site/page.ts"
 import { tools } from "./tools.ts"
+
+export interface Env {
+  /**
+   * Comma-separated workspace slugs this deployment serves. Unset serves every
+   * workspace, which is safe but lets anyone spend the request quota.
+   */
+  readonly ALLOWED_WORKSPACES?: string | undefined
+}
 
 const SERVER_NAME = "bitbucket-mcp"
 const SERVER_VERSION = "1.0.0"
@@ -20,7 +28,7 @@ const makeRuntime = (credentials: BitbucketCredentials) => {
   )
 }
 
-const app = new Hono()
+const app = new Hono<{ Bindings: Env }>()
 
 app.get("/", (c) =>
   c.html(
@@ -35,7 +43,8 @@ app.get("/", (c) =>
 app.all("/:workspace/mcp", async (c) => {
   const runtime = makeRuntime({
     workspace: c.req.param("workspace"),
-    authorization: c.req.header("authorization")
+    authorization: c.req.header("authorization"),
+    allowedWorkspaces: parseAllowedWorkspaces(c.env.ALLOWED_WORKSPACES)
   })
 
   const config = await runtime.runPromiseExit(BitbucketConfig.useSync((config) => config))
@@ -49,6 +58,10 @@ app.all("/:workspace/mcp", async (c) => {
       }
       if (error._tag === "InvalidWorkspace") {
         return c.json({ error: detail }, 400)
+      }
+      // 404 rather than 403: don't confirm which workspaces this deployment serves.
+      if (error._tag === "WorkspaceNotAllowed") {
+        return c.json({ error: "not found" }, 404)
       }
     }
     return c.json({ error: detail }, 500)
