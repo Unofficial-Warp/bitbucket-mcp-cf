@@ -85,6 +85,8 @@ export const homePage = (options: {
     --code-bg: #0b1220;
     --code-text: #e6edf3;
     --ok: #216e4e;
+    --warn-bg: #fff7e6;
+    --warn-border: #f0c14b;
   }
   @media (prefers-color-scheme: dark) {
     :root {
@@ -98,6 +100,8 @@ export const homePage = (options: {
       --code-bg: #0b1220;
       --code-text: #e6edf3;
       --ok: #7ee2b8;
+      --warn-bg: #2a2113;
+      --warn-border: #7a5c1e;
     }
   }
   * { box-sizing: border-box; }
@@ -156,6 +160,26 @@ export const homePage = (options: {
   .muted { color: var(--muted); }
   a { color: var(--accent); }
   .table-wrap { overflow-x: auto; }
+  fieldset.scope {
+    border: 1px solid var(--border); border-radius: 10px; padding: .9rem 1rem 1rem; margin: 0 0 .75rem;
+    display: grid; gap: .5rem; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  }
+  fieldset.scope legend {
+    font-size: .8rem; font-weight: 600; padding: 0 .35rem;
+  }
+  fieldset.scope label {
+    display: grid; grid-template-columns: auto 1fr; gap: 0 .5rem; align-items: start;
+    margin: 0; font-weight: 400; cursor: pointer; padding: .4rem .5rem; border-radius: 7px;
+  }
+  fieldset.scope label:hover { background: var(--panel); }
+  fieldset.scope input { width: auto; margin: .25rem 0 0; accent-color: var(--accent); }
+  .scope-name { font-size: .875rem; font-weight: 600; }
+  .scope-hint { grid-column: 2; font-size: .75rem; color: var(--muted); }
+  .warning {
+    margin: 0 0 .75rem; padding: .7rem .85rem; border-radius: 8px; font-size: .8rem;
+    border: 1px solid var(--warn-border); background: var(--warn-bg); color: var(--text);
+  }
+  .warning[hidden] { display: none; }
 </style>
 </head>
 <body>
@@ -204,15 +228,33 @@ export const homePage = (options: {
   </div>
 
   <h2>3. Run this command</h2>
+  <fieldset class="scope">
+    <legend>Where should it be available?</legend>
+    <label>
+      <input type="radio" name="scope" value="local" checked>
+      <span class="scope-name">This project</span>
+      <span class="scope-hint">Just the directory you run it in. Claude Code's default.</span>
+    </label>
+    <label>
+      <input type="radio" name="scope" value="user">
+      <span class="scope-name">All my projects</span>
+      <span class="scope-hint">Adds <code>--scope user</code>.</span>
+    </label>
+    <label>
+      <input type="radio" name="scope" value="project">
+      <span class="scope-name">Share with my team</span>
+      <span class="scope-hint">Adds <code>--scope project</code>, writing <code>.mcp.json</code>.</span>
+    </label>
+  </fieldset>
+  <p id="scope-warning" class="warning" hidden>
+    <strong>Careful:</strong> project scope writes the command into <code>.mcp.json</code> in your
+    repository, and the header below contains your personal API token. Anyone who can read the repo
+    can act as you in Bitbucket. Prefer one of the other two unless you are certain.
+  </p>
   <div class="output">
     <pre id="command" class="pending">Fill in the fields above to generate your command.</pre>
     <button id="copy" type="button" disabled>Copy</button>
   </div>
-  <p class="privacy">
-    Add <code>--scope user</code> to make it available in every project, or
-    <code>--scope project</code> to share it with your team via <code>.mcp.json</code> — but note
-    that the header contains your personal token.
-  </p>
 
   <h2>Other MCP clients</h2>
   <div class="output">
@@ -243,6 +285,15 @@ export const homePage = (options: {
   var jsonEl = document.getElementById('json');
   var copyBtn = document.getElementById('copy');
   var copyJsonBtn = document.getElementById('copy-json');
+  var scopeInputs = document.querySelectorAll('input[name="scope"]');
+  var scopeWarning = document.getElementById('scope-warning');
+
+  function selectedScope() {
+    for (var i = 0; i < scopeInputs.length; i++) {
+      if (scopeInputs[i].checked) return scopeInputs[i].value;
+    }
+    return 'local';
+  }
 
   function basic(email, token) {
     var bytes = new TextEncoder().encode(email + ':' + token);
@@ -255,6 +306,9 @@ export const homePage = (options: {
     var workspace = fields.workspace.value.trim();
     var email = fields.email.value.trim();
     var token = fields.token.value.trim();
+    var scope = selectedScope();
+
+    scopeWarning.hidden = scope !== 'project';
 
     if (!workspace || !email || !token) {
       commandEl.textContent = 'Fill in the fields above to generate your command.';
@@ -269,7 +323,10 @@ export const homePage = (options: {
     var url = ORIGIN + '/' + encodeURIComponent(workspace) + '/mcp';
     var header = basic(email, token);
 
-    commandEl.textContent = 'claude mcp add --transport http bitbucket \\\\\\n' +
+    // 'local' is Claude Code's default, so the flag is only noise there.
+    var scopeFlag = scope === 'local' ? '' : ' --scope ' + scope;
+
+    commandEl.textContent = 'claude mcp add --transport http' + scopeFlag + ' bitbucket \\\\\\n' +
       '  ' + url + ' \\\\\\n' +
       '  --header "Authorization: ' + header + '"';
 
@@ -298,6 +355,9 @@ export const homePage = (options: {
   Object.keys(fields).forEach(function (key) {
     fields[key].addEventListener('input', render);
   });
+  for (var s = 0; s < scopeInputs.length; s++) {
+    scopeInputs[s].addEventListener('change', render);
+  }
   copier(copyBtn, commandEl);
   copier(copyJsonBtn, jsonEl);
   render();
