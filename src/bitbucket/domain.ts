@@ -42,6 +42,7 @@ export const PullRequest = Schema.Struct({
   title: Schema.String,
   description: Schema.optional(Schema.NullOr(Schema.String)),
   state: Schema.optional(Schema.String),
+  draft: Schema.optional(Schema.Boolean),
   author: Schema.optional(Author),
   reviewers: Schema.optional(Schema.Array(Reviewer)),
   created_on: Schema.optional(Schema.NullOr(Schema.String)),

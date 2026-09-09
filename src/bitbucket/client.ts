@@ -31,6 +31,7 @@ export interface UpdatePullRequestInput {
   readonly prId: number
   readonly title?: string | undefined
   readonly description?: string | undefined
+  readonly draft?: boolean | undefined
 }
 
 export interface CompareBranchesInput {
@@ -210,7 +211,9 @@ export class Bitbucket extends Context.Service<Bitbucket, {
           HttpClientRequest.put(`${repo(input.repoSlug)}/pullrequests/${input.prId}`).pipe(
             HttpClientRequest.bodyJsonUnsafe({
               ...(input.title ? { title: input.title } : {}),
-              ...(input.description ? { description: input.description } : {})
+              ...(input.description ? { description: input.description } : {}),
+              // `draft: false` is meaningful (mark ready for review), so test for undefined.
+              ...(input.draft === undefined ? {} : { draft: input.draft })
             })
           ),
           Domain.PullRequest

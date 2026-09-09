@@ -7,6 +7,9 @@ const repoSlug = Schema.String.annotate({ description: "The repository slug" })
 const prId = Schema.Int.annotate({ description: "The pull request ID" })
 const sourceBranch = Schema.String.annotate({ description: "The source branch name" })
 const destinationBranch = Schema.String.annotate({ description: "The destination branch name" })
+const draft = Schema.Boolean.annotate({
+  description: "true moves the PR to draft, false marks it ready for review"
+})
 
 const RepoParams = Schema.Struct({ repo_slug: repoSlug })
 
@@ -82,7 +85,7 @@ export const tools: ReadonlyArray<McpTool<Bitbucket>> = [
 
   Tool.make({
     name: "update_pull_request",
-    description: "Update an existing pull request's title and/or description",
+    description: "Update an existing pull request's title, description and/or draft status",
     parameters: Schema.Struct({
       repo_slug: repoSlug,
       pr_id: prId,
@@ -91,7 +94,8 @@ export const tools: ReadonlyArray<McpTool<Bitbucket>> = [
       ),
       description: Schema.optionalKey(
         Schema.String.annotate({ description: "Optional new description for the PR (markdown)" })
-      )
+      ),
+      draft: Schema.optionalKey(draft)
     }),
     handler: (params) =>
       Bitbucket.use((bitbucket) =>
@@ -99,7 +103,23 @@ export const tools: ReadonlyArray<McpTool<Bitbucket>> = [
           repoSlug: params.repo_slug,
           prId: params.pr_id,
           title: params.title,
-          description: params.description
+          description: params.description,
+          draft: params.draft
+        })
+      )
+  }),
+
+  Tool.make({
+    name: "set_pr_draft",
+    description:
+      "Move a pull request to draft, or back to ready for review. Only open pull requests can be changed",
+    parameters: Schema.Struct({ repo_slug: repoSlug, pr_id: prId, draft }),
+    handler: (params) =>
+      Bitbucket.use((bitbucket) =>
+        bitbucket.updatePullRequest({
+          repoSlug: params.repo_slug,
+          prId: params.pr_id,
+          draft: params.draft
         })
       )
   }),
