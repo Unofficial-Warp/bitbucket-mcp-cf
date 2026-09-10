@@ -62,10 +62,7 @@ export const homePage = (options: {
   readonly origin: string
   readonly tools: ReadonlyArray<McpTool<unknown>>
 }) => {
-  const writeTools = options.tools.filter((tool) =>
-    tool.name.startsWith("create_") || tool.name.startsWith("update_") ||
-    tool.name.startsWith("set_")
-  ).length
+  const writeTools = options.tools.filter((tool) => tool.write).length
 
   return `<!doctype html>
 <html lang="en">

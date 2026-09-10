@@ -33,8 +33,8 @@ Everything below the transport is Effect:
 | `list_branches` | List branches for a repository |
 | `list_pull_requests` | List pull requests, optionally filtered by state |
 | `get_pull_request` | Get a specific pull request by ID |
-| `create_pull_request` | Create a new pull request |
-| `update_pull_request` | Update a pull request title, description and/or draft status |
+| `create_pull_request` | Create a new pull request, optionally as a draft |
+| `update_pull_request` | Update a pull request title and/or description |
 | `set_pr_draft` | Move a pull request to draft, or back to ready for review |
 | `list_pr_commits` | List commits on a pull request |
 | `list_pr_comments` | List all comments on a pull request |

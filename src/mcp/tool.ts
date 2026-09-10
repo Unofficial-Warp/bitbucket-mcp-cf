@@ -9,6 +9,7 @@ export class InvalidToolInput extends Schema.TaggedErrorClass<InvalidToolInput>(
 export interface McpTool<R> {
   readonly name: string
   readonly description: string
+  readonly write: boolean
   readonly inputSchema: JsonSchema.JsonSchema
   readonly run: (args: unknown) => Effect.Effect<string, unknown, R>
 }
@@ -58,6 +59,7 @@ const toJsonSchema = (schema: Schema.Top): JsonSchema.JsonSchema => {
 export const make = <Params extends Schema.Codec<any, any, never, never>, E, R>(def: {
   readonly name: string
   readonly description: string
+  readonly write?: boolean | undefined
   readonly parameters: Params
   readonly handler: (params: Params["Type"]) => Effect.Effect<unknown, E, R>
 }): McpTool<R> => {
@@ -65,6 +67,7 @@ export const make = <Params extends Schema.Codec<any, any, never, never>, E, R>(
   return {
     name: def.name,
     description: def.description,
+    write: def.write ?? false,
     inputSchema: toJsonSchema(def.parameters),
     run: (args) =>
       decode(args ?? {}).pipe(

@@ -7,10 +7,6 @@ const repoSlug = Schema.String.annotate({ description: "The repository slug" })
 const prId = Schema.Int.annotate({ description: "The pull request ID" })
 const sourceBranch = Schema.String.annotate({ description: "The source branch name" })
 const destinationBranch = Schema.String.annotate({ description: "The destination branch name" })
-const draft = Schema.Boolean.annotate({
-  description: "true moves the PR to draft, false marks it ready for review"
-})
-
 const RepoParams = Schema.Struct({ repo_slug: repoSlug })
 
 const PrParams = Schema.Struct({ repo_slug: repoSlug, pr_id: prId })
@@ -62,6 +58,7 @@ export const tools: ReadonlyArray<McpTool<Bitbucket>> = [
   Tool.make({
     name: "create_pull_request",
     description: "Create a new pull request in a Bitbucket repository",
+    write: true,
     parameters: Schema.Struct({
       repo_slug: repoSlug,
       title: Schema.String.annotate({ description: "The PR title" }),
@@ -69,6 +66,9 @@ export const tools: ReadonlyArray<McpTool<Bitbucket>> = [
       destination_branch: destinationBranch,
       description: Schema.optionalKey(
         Schema.String.annotate({ description: "Optional PR description in markdown" })
+      ),
+      draft: Schema.optionalKey(
+        Schema.Boolean.annotate({ description: "Open the PR as a draft; defaults to false" })
       )
     }),
     handler: (params) =>
@@ -78,14 +78,16 @@ export const tools: ReadonlyArray<McpTool<Bitbucket>> = [
           title: params.title,
           sourceBranch: params.source_branch,
           destinationBranch: params.destination_branch,
-          description: params.description
+          description: params.description,
+          draft: params.draft
         })
       )
   }),
 
   Tool.make({
     name: "update_pull_request",
-    description: "Update an existing pull request's title, description and/or draft status",
+    description: "Update an existing pull request's title and/or description",
+    write: true,
     parameters: Schema.Struct({
       repo_slug: repoSlug,
       pr_id: prId,
@@ -94,8 +96,7 @@ export const tools: ReadonlyArray<McpTool<Bitbucket>> = [
       ),
       description: Schema.optionalKey(
         Schema.String.annotate({ description: "Optional new description for the PR (markdown)" })
-      ),
-      draft: Schema.optionalKey(draft)
+      )
     }),
     handler: (params) =>
       Bitbucket.use((bitbucket) =>
@@ -103,8 +104,7 @@ export const tools: ReadonlyArray<McpTool<Bitbucket>> = [
           repoSlug: params.repo_slug,
           prId: params.pr_id,
           title: params.title,
-          description: params.description,
-          draft: params.draft
+          description: params.description
         })
       )
   }),
@@ -113,7 +113,14 @@ export const tools: ReadonlyArray<McpTool<Bitbucket>> = [
     name: "set_pr_draft",
     description:
       "Move a pull request to draft, or back to ready for review. Only open pull requests can be changed",
-    parameters: Schema.Struct({ repo_slug: repoSlug, pr_id: prId, draft }),
+    write: true,
+    parameters: Schema.Struct({
+      repo_slug: repoSlug,
+      pr_id: prId,
+      draft: Schema.Boolean.annotate({
+        description: "true moves the PR to draft, false marks it ready for review"
+      })
+    }),
     handler: (params) =>
       Bitbucket.use((bitbucket) =>
         bitbucket.updatePullRequest({

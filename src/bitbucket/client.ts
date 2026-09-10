@@ -24,6 +24,7 @@ export interface CreatePullRequestInput {
   readonly sourceBranch: string
   readonly destinationBranch: string
   readonly description?: string | undefined
+  readonly draft?: boolean | undefined
 }
 
 export interface UpdatePullRequestInput {
@@ -196,6 +197,7 @@ export class Bitbucket extends Context.Service<Bitbucket, {
             HttpClientRequest.bodyJsonUnsafe({
               title: input.title,
               ...(input.description ? { description: input.description } : {}),
+              ...(input.draft === undefined ? {} : { draft: input.draft }),
               source: { branch: { name: input.sourceBranch } },
               destination: { branch: { name: input.destinationBranch } }
             })
@@ -210,9 +212,10 @@ export class Bitbucket extends Context.Service<Bitbucket, {
         return yield* json(
           HttpClientRequest.put(`${repo(input.repoSlug)}/pullrequests/${input.prId}`).pipe(
             HttpClientRequest.bodyJsonUnsafe({
-              ...(input.title ? { title: input.title } : {}),
-              ...(input.description ? { description: input.description } : {}),
-              // `draft: false` is meaningful (mark ready for review), so test for undefined.
+              // `description: ""` (clear it) and `draft: false` (mark ready for review) are
+              // both meaningful, so absence is the only thing that means "leave unchanged".
+              ...(input.title === undefined ? {} : { title: input.title }),
+              ...(input.description === undefined ? {} : { description: input.description }),
               ...(input.draft === undefined ? {} : { draft: input.draft })
             })
           ),
